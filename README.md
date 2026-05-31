@@ -72,8 +72,10 @@ Server memakai JWT dalam httpOnly cookie `SameSite=Lax` untuk autentikasi intern
 
 ## Deploy Vercel
 
-Deploy dari root project. Konfigurasi ada di [vercel.json](C:/Prime_Property/vercel.json):
+Deploy sebagai 2 project terpisah:
 
-- `client` dibuild sebagai Vite static site ke `client/dist`.
-- Semua route `/api/*` diarahkan ke Express serverless function di [api/index.js](C:/Prime_Property/api/index.js).
-- Semua route halaman React seperti `/`, `/about`, `/contact`, dan `/agent/login` fallback ke `index.html`.
+- Frontend: set **Root Directory** ke `client`.
+- Backend: set **Root Directory** ke `server`.
+
+Frontend memakai [client/vercel.json](C:/Prime_Property/client/vercel.json) dan hanya build React Vite ke `dist`.
+Backend memakai [server/vercel.json](C:/Prime_Property/server/vercel.json) dan hanya expose route `/api/*`.
