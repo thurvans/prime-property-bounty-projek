@@ -3,10 +3,7 @@
   "buildCommand": "npm run prisma:generate",
   "functions": {
     "api/index.js": {
-      "includeFiles": [
-        "prisma/**",
-        "src/**"
-      ]
+      "includeFiles": "prisma/**"
     }
   },
   "rewrites": [
