@@ -1,0 +1,20 @@
+{
+  "installCommand": "cd client && npm install && cd ../server && npm install",
+  "buildCommand": "cd client && npm run build && cd ../server && npm run prisma:generate",
+  "outputDirectory": "client/dist",
+  "functions": {
+    "api/index.js": {
+      "includeFiles": "server/**"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "/api/index.js?path=:path*"
+    },
+    {
+      "source": "/:path*",
+      "destination": "/index.html"
+    }
+  ]
+}

@@ -15,8 +15,6 @@ client/  # React Vite + Tailwind + Font Awesome
 server/  # Express.js + Prisma + PostgreSQL + JWT cookie auth
 ```
 
-Tidak ada `package.json`, `package-lock.json`, atau `node_modules` di root project.
-
 ## Env
 
 - Server: [server/.env](C:/Prime_Property/server/.env)
@@ -71,3 +69,11 @@ npm start
 ```
 
 Server memakai JWT dalam httpOnly cookie `SameSite=Lax` untuk autentikasi internal agent. Mutasi internal mengirim `X-CSRF-Token` dari frontend sebagai perlindungan CSRF.
+
+## Deploy Vercel
+
+Deploy dari root project. Konfigurasi ada di [vercel.json](C:/Prime_Property/vercel.json):
+
+- `client` dibuild sebagai Vite static site ke `client/dist`.
+- Semua route `/api/*` diarahkan ke Express serverless function di [api/index.js](C:/Prime_Property/api/index.js).
+- Semua route halaman React seperti `/`, `/about`, `/contact`, dan `/agent/login` fallback ke `index.html`.
