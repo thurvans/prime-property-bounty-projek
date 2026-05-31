@@ -3,7 +3,7 @@ import nodemailer from 'nodemailer';
 import crypto from 'node:crypto';
 import { z } from 'zod';
 import { contactLimiter } from '../middleware/rateLimits.js';
-import { getDb, saveDb } from '../services/store.js';
+import { getDb, persistContactMessage } from '../services/store.js';
 import { normalizeText } from '../utils/formatters.js';
 
 const router = express.Router();
@@ -62,7 +62,7 @@ router.post('/contact', contactLimiter, async (req, res) => {
 
   message.notification = await sendNotification(message);
   db.contact_messages.unshift(message);
-  await saveDb();
+  await persistContactMessage(message);
 
   res.status(201).json({ message: 'Pesan terkirim, tim kami akan menghubungi Anda.' });
 });

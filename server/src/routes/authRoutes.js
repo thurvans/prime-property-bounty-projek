@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { config } from '../config.js';
 import { AUTH_COOKIE_NAME, requireAuth } from '../middleware/auth.js';
 import { authLimiter } from '../middleware/rateLimits.js';
-import { getDb, sanitizeUser, saveDb } from '../services/store.js';
+import { getDb, persistUser, sanitizeUser } from '../services/store.js';
 
 const router = express.Router();
 
@@ -58,18 +58,21 @@ router.post('/auth/login', authLimiter, async (req, res) => {
     }
 
     user.updated_at = new Date().toISOString();
-    await saveDb();
+    await persistUser(user);
 
     return res.status(user.lock_until ? 423 : 401).json({
       message: user.lock_until ? 'Akun terkunci sementara setelah 5 percobaan gagal.' : 'Email atau password tidak sesuai.'
     });
   }
 
+  const hadLoginPenalty = Boolean(user.lock_until || user.failed_logins?.length);
   user.failed_logins = [];
   user.lock_until = null;
   user.updated_at = new Date().toISOString();
 
-  await saveDb();
+  if (hadLoginPenalty) {
+    await persistUser(user);
+  }
 
   const csrfToken = crypto.randomBytes(32).toString('hex');
   const token = jwt.sign(

@@ -9,6 +9,12 @@ let writeQueue = Promise.resolve();
 
 const nowIso = () => new Date().toISOString();
 
+function enqueueWrite(task) {
+  const run = writeQueue.then(task, task);
+  writeQueue = run.catch(() => {});
+  return run;
+}
+
 function iso(value) {
   if (!value) return null;
   return value instanceof Date ? value.toISOString() : value;
@@ -150,6 +156,11 @@ function toAuditLogCreate(log) {
   };
 }
 
+function omitImmutable(data) {
+  const { id: _id, createdAt: _createdAt, ...mutable } = data;
+  return mutable;
+}
+
 async function readDb() {
   const [users, properties, contactMessages, auditLogs] = await Promise.all([
     prisma.user.findMany({ orderBy: { createdAt: 'asc' } }),
@@ -186,7 +197,7 @@ export function getDb() {
 }
 
 export async function saveDb() {
-  writeQueue = writeQueue.then(async () => {
+  return enqueueWrite(async () => {
     await prisma.$transaction([
       prisma.auditLog.deleteMany(),
       prisma.contactMessage.deleteMany(),
@@ -201,8 +212,44 @@ export async function saveDb() {
       ...(db.audit_logs || []).map((log) => prisma.auditLog.create({ data: toAuditLogCreate(log) }))
     ]);
   });
+}
 
-  return writeQueue;
+export async function persistUser(user, auditLog = null) {
+  const data = toUserCreate(user);
+  const actions = [
+    prisma.user.upsert({
+      where: { id: user.id },
+      create: data,
+      update: omitImmutable(data)
+    })
+  ];
+
+  if (auditLog) {
+    actions.push(prisma.auditLog.create({ data: toAuditLogCreate(auditLog) }));
+  }
+
+  return enqueueWrite(() => prisma.$transaction(actions));
+}
+
+export async function persistProperty(property, auditLog = null) {
+  const data = toPropertyCreate(property);
+  const actions = [
+    prisma.property.upsert({
+      where: { id: property.id },
+      create: data,
+      update: omitImmutable(data)
+    })
+  ];
+
+  if (auditLog) {
+    actions.push(prisma.auditLog.create({ data: toAuditLogCreate(auditLog) }));
+  }
+
+  return enqueueWrite(() => prisma.$transaction(actions));
+}
+
+export async function persistContactMessage(message) {
+  return enqueueWrite(() => prisma.contactMessage.create({ data: toContactMessageCreate(message) }));
 }
 
 export function sanitizeUser(user) {

@@ -30,11 +30,11 @@ export default function UsersPage() {
   async function createUser(event) {
     event.preventDefault();
     try {
-      await api('/users', { method: 'POST', body: form });
+      const data = await api('/users', { method: 'POST', body: form });
+      setUsers((currentUsers) => [...currentUsers, data.item].sort((a, b) => a.name.localeCompare(b.name, 'id')));
       pushToast('Akun admin berhasil dibuat.');
       setForm(emptyForm);
       setFormOpen(false);
-      loadUsers();
     } catch (error) {
       pushToast(error.message, 'error');
     }
@@ -42,9 +42,9 @@ export default function UsersPage() {
 
   async function updateStatus(user, enabled) {
     try {
-      await api(`/users/${user.id}/status`, { method: 'PATCH', body: { enabled } });
+      const data = await api(`/users/${user.id}/status`, { method: 'PATCH', body: { enabled } });
+      setUsers((currentUsers) => currentUsers.map((item) => (item.id === user.id ? data.item : item)));
       pushToast(enabled ? 'Akun berhasil diaktifkan.' : 'Akun berhasil dinonaktifkan.');
-      loadUsers();
     } catch (error) {
       pushToast(error.message, 'error');
     }
@@ -53,11 +53,11 @@ export default function UsersPage() {
   async function resetPassword(event) {
     event.preventDefault();
     try {
-      await api(`/users/${resetTarget.id}/reset-password`, { method: 'PATCH', body: { password: newPassword } });
+      const data = await api(`/users/${resetTarget.id}/reset-password`, { method: 'PATCH', body: { password: newPassword } });
+      setUsers((currentUsers) => currentUsers.map((item) => (item.id === resetTarget.id ? data.item : item)));
       pushToast('Password admin berhasil direset.');
       setResetTarget(null);
       setNewPassword('');
-      loadUsers();
     } catch (error) {
       pushToast(error.message, 'error');
     }

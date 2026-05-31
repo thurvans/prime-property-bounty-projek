@@ -53,6 +53,53 @@ function buildParams(filters) {
   return params;
 }
 
+function sortRows(properties, sort) {
+  const [field = 'nama_property', direction = 'asc'] = String(sort || defaults.sort).split(':');
+  const multiplier = direction === 'desc' ? -1 : 1;
+
+  return [...properties].sort((a, b) => {
+    const left = field === 'created_at' ? new Date(a.created_at).getTime() : a[field];
+    const right = field === 'created_at' ? new Date(b.created_at).getTime() : b[field];
+    if (typeof left === 'number' && typeof right === 'number') return (left - right) * multiplier;
+    return String(left || '').localeCompare(String(right || ''), 'id') * multiplier;
+  });
+}
+
+function propertyMatchesFilters(property, filters) {
+  if (!property || property.deleted_at) return false;
+
+  const search = String(filters.search || '').trim().toLowerCase();
+  if (search) {
+    const haystack = [property.nama_property, property.group, ...(property.kawasan || [])].filter(Boolean).join(' ').toLowerCase();
+    if (!haystack.includes(search)) return false;
+  }
+
+  if (filters.kawasan.length && !property.kawasan?.some((area) => filters.kawasan.includes(area))) return false;
+  if (filters.hadap.length && !property.hadap?.some((direction) => filters.hadap.includes(direction))) return false;
+  if (filters.siap.length && !filters.siap.includes(property.siap)) return false;
+  if (filters.lebarMin && Number(property.lebar) < Number(filters.lebarMin)) return false;
+  if (filters.hargaMax && Number(property.price) > Number(filters.hargaMax)) return false;
+  if (filters.tipe !== 'Semua' && property.tipe !== filters.tipe) return false;
+  if (filters.status !== 'Semua' && property.status !== filters.status) return false;
+  if (filters.carport === 'Ya' && !property.carport) return false;
+  if (filters.carport === 'Tidak' && property.carport) return false;
+
+  return true;
+}
+
+function mergeOptionList(current = [], values = []) {
+  return [...new Set([...current, ...values.filter(Boolean)])].sort((a, b) => String(a).localeCompare(String(b), 'id'));
+}
+
+function adjustMetaTotal(meta, delta) {
+  const total = Math.max(0, meta.total + delta);
+  return {
+    ...meta,
+    total,
+    totalPages: Math.max(1, Math.ceil(total / meta.pageSize))
+  };
+}
+
 export default function PropertiesPage() {
   const { user } = useAuth();
   const { pushToast } = useToast();
@@ -84,14 +131,17 @@ export default function PropertiesPage() {
   }, [pushToast]);
 
   useEffect(() => {
+    const params = buildParams(filters);
+    if (highlightId) params.set('highlightId', highlightId);
+    setSearchParams(params, { replace: true });
+  }, [filters, highlightId, setSearchParams]);
+
+  useEffect(() => {
     const handle = window.setTimeout(() => {
-      const params = buildParams(filters);
-      if (highlightId) params.set('highlightId', highlightId);
-      setSearchParams(params, { replace: true });
       fetchRows(filters);
     }, 300);
     return () => window.clearTimeout(handle);
-  }, [filters, fetchRows, highlightId, setSearchParams]);
+  }, [filters, fetchRows]);
 
   function updateFilter(key, value, resetPage = true) {
     setFilters((state) => ({ ...state, [key]: value, page: resetPage ? 1 : state.page }));
@@ -108,11 +158,26 @@ export default function PropertiesPage() {
       const data = formMode?.type === 'edit'
         ? await api(`/properties/${formMode.property.id}`, { method: 'PUT', body: payload })
         : await api('/properties', { method: 'POST', body: payload });
+      const item = data.item;
+      const wasVisible = rows.some((row) => row.id === item.id);
+      const shouldShow = propertyMatchesFilters(item, filters);
+
+      setRows((currentRows) => {
+        const withoutCurrent = currentRows.filter((row) => row.id !== item.id);
+        if (!shouldShow) return withoutCurrent;
+        return sortRows([item, ...withoutCurrent], filters.sort).slice(0, filters.pageSize);
+      });
+      setMeta((currentMeta) => adjustMetaTotal(currentMeta, (shouldShow && !wasVisible ? 1 : 0) - (!shouldShow && wasVisible ? 1 : 0)));
+      setOptions((currentOptions) => ({
+        ...currentOptions,
+        kawasan: mergeOptionList(currentOptions.kawasan, item.kawasan || [])
+      }));
       pushToast(formMode?.type === 'edit' ? 'Properti berhasil diperbarui.' : 'Properti berhasil ditambahkan.');
-      setHighlightId(data.item.id);
-      await fetchRows(filters);
-      if (!keepOpen) setFormMode(null);
-      setSelected(data.item);
+      setHighlightId(item.id);
+      if (!keepOpen) {
+        setFormMode(null);
+        setSelected(item);
+      }
     } catch (error) {
       pushToast(error.message, 'error');
       throw error;
@@ -123,10 +188,12 @@ export default function PropertiesPage() {
     if (!deleteTarget) return;
     try {
       await api(`/properties/${deleteTarget.id}`, { method: 'DELETE' });
+      setRows((currentRows) => currentRows.filter((row) => row.id !== deleteTarget.id));
+      setMeta((currentMeta) => adjustMetaTotal(currentMeta, -1));
       pushToast('Properti berhasil dihapus.');
       setDeleteTarget(null);
       setSelected(null);
-      fetchRows(filters);
+      setHighlightId(null);
     } catch (error) {
       pushToast(error.message, 'error');
     }

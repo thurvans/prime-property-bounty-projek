@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 import express from 'express';
 import { requireAuth, requireSuperadmin } from '../middleware/auth.js';
-import { addAuditLog, getDb, saveDb } from '../services/store.js';
+import { addAuditLog, getDb, persistProperty } from '../services/store.js';
 import { compactObject, diffObjects } from '../utils/formatters.js';
 import { directionOptions, parsePropertyPayload, readyOptions, statusOptions, typeOptions } from '../validators/propertyValidator.js';
 
@@ -138,8 +138,15 @@ router.post('/properties', requireAuth, requireSuperadmin, async (req, res) => {
 
   const db = getDb();
   db.properties.unshift(property);
-  addAuditLog({ actorId: req.user.id, action: 'create', entity: 'property', entityId: property.id, after: compactObject(property), ip: req.ip });
-  await saveDb();
+  const auditLog = addAuditLog({
+    actorId: req.user.id,
+    action: 'create',
+    entity: 'property',
+    entityId: property.id,
+    after: compactObject(property),
+    ip: req.ip
+  });
+  await persistProperty(property, auditLog);
 
   res.status(201).json({ item: property });
 });
@@ -160,7 +167,7 @@ router.put('/properties/:id', requireAuth, requireSuperadmin, async (req, res) =
   };
 
   db.properties[index] = updated;
-  addAuditLog({
+  const auditLog = addAuditLog({
     actorId: req.user.id,
     action: 'update',
     entity: 'property',
@@ -170,7 +177,7 @@ router.put('/properties/:id', requireAuth, requireSuperadmin, async (req, res) =
     changes: diffObjects(before, updated),
     ip: req.ip
   });
-  await saveDb();
+  await persistProperty(updated, auditLog);
 
   res.json({ item: updated });
 });
@@ -184,7 +191,7 @@ router.delete('/properties/:id', requireAuth, requireSuperadmin, async (req, res
   property.deleted_at = new Date().toISOString();
   property.updated_at = property.deleted_at;
 
-  addAuditLog({
+  const auditLog = addAuditLog({
     actorId: req.user.id,
     action: 'delete',
     entity: 'property',
@@ -193,7 +200,7 @@ router.delete('/properties/:id', requireAuth, requireSuperadmin, async (req, res
     after: compactObject(property),
     ip: req.ip
   });
-  await saveDb();
+  await persistProperty(property, auditLog);
 
   res.json({ message: 'Properti berhasil dihapus.' });
 });
@@ -204,8 +211,15 @@ router.patch('/properties/:id/restore', requireAuth, requireSuperadmin, async (r
 
   property.deleted_at = null;
   property.updated_at = new Date().toISOString();
-  addAuditLog({ actorId: req.user.id, action: 'restore', entity: 'property', entityId: property.id, after: compactObject(property), ip: req.ip });
-  await saveDb();
+  const auditLog = addAuditLog({
+    actorId: req.user.id,
+    action: 'restore',
+    entity: 'property',
+    entityId: property.id,
+    after: compactObject(property),
+    ip: req.ip
+  });
+  await persistProperty(property, auditLog);
 
   res.json({ item: property });
 });

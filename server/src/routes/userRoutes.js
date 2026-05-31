@@ -3,7 +3,7 @@ import crypto from 'node:crypto';
 import express from 'express';
 import { z } from 'zod';
 import { requireAuth, requireSuperadmin } from '../middleware/auth.js';
-import { addAuditLog, getDb, sanitizeUser, saveDb } from '../services/store.js';
+import { addAuditLog, getDb, persistUser, sanitizeUser } from '../services/store.js';
 
 const router = express.Router();
 
@@ -45,8 +45,15 @@ router.post('/users', requireAuth, requireSuperadmin, async (req, res) => {
   };
 
   db.users.push(user);
-  addAuditLog({ actorId: req.user.id, action: 'create', entity: 'user', entityId: user.id, after: sanitizeUser(user), ip: req.ip });
-  await saveDb();
+  const auditLog = addAuditLog({
+    actorId: req.user.id,
+    action: 'create',
+    entity: 'user',
+    entityId: user.id,
+    after: sanitizeUser(user),
+    ip: req.ip
+  });
+  await persistUser(user, auditLog);
 
   res.status(201).json({ item: sanitizeUser(user) });
 });
@@ -58,8 +65,15 @@ router.patch('/users/:id/status', requireAuth, requireSuperadmin, async (req, re
 
   user.enabled = Boolean(req.body.enabled);
   user.updated_at = new Date().toISOString();
-  addAuditLog({ actorId: req.user.id, action: user.enabled ? 'enable' : 'disable', entity: 'user', entityId: user.id, after: sanitizeUser(user), ip: req.ip });
-  await saveDb();
+  const auditLog = addAuditLog({
+    actorId: req.user.id,
+    action: user.enabled ? 'enable' : 'disable',
+    entity: 'user',
+    entityId: user.id,
+    after: sanitizeUser(user),
+    ip: req.ip
+  });
+  await persistUser(user, auditLog);
 
   res.json({ item: sanitizeUser(user) });
 });
@@ -75,8 +89,8 @@ router.patch('/users/:id/reset-password', requireAuth, requireSuperadmin, async 
   user.failed_logins = [];
   user.lock_until = null;
   user.updated_at = new Date().toISOString();
-  addAuditLog({ actorId: req.user.id, action: 'reset_password', entity: 'user', entityId: user.id, ip: req.ip });
-  await saveDb();
+  const auditLog = addAuditLog({ actorId: req.user.id, action: 'reset_password', entity: 'user', entityId: user.id, ip: req.ip });
+  await persistUser(user, auditLog);
 
   res.json({ item: sanitizeUser(user) });
 });

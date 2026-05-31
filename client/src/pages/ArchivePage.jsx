@@ -23,8 +23,8 @@ export default function ArchivePage() {
   async function restore(item) {
     try {
       await api(`/properties/${item.id}/restore`, { method: 'PATCH' });
+      setItems((currentItems) => currentItems.filter((currentItem) => currentItem.id !== item.id));
       pushToast('Properti berhasil direstore.');
-      loadArchive();
     } catch (error) {
       pushToast(error.message, 'error');
     }
