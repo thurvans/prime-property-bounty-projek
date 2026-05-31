@@ -1,0 +1,78 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id
+  name         String
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  role         String
+  enabled      Boolean  @default(true)
+  failedLogins Json     @default("[]") @map("failed_logins")
+  lockUntil    DateTime? @map("lock_until") @db.Timestamptz(6)
+  createdAt    DateTime @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime @map("updated_at") @db.Timestamptz(6)
+  properties   Property[] @relation("PropertyCreatedBy")
+
+  @@map("users")
+}
+
+model Property {
+  id           String    @id
+  namaProperty String    @map("nama_property")
+  group        String?   @map("property_group")
+  lebar        Decimal   @db.Decimal(10, 2)
+  panjang      Decimal   @db.Decimal(10, 2)
+  hadap        String[]
+  tipe         String
+  tingkat      Decimal   @db.Decimal(4, 1)
+  price        BigInt
+  carport      Boolean   @default(false)
+  status       String
+  siap         String
+  mapsLink     String    @map("maps_link")
+  kawasan      String[]
+  unit         String?
+  highlighted  Boolean   @default(false)
+  createdAt    DateTime  @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime  @map("updated_at") @db.Timestamptz(6)
+  createdById  String?   @map("created_by")
+  createdBy    User?     @relation("PropertyCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  deletedAt    DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  @@map("properties")
+}
+
+model ContactMessage {
+  id           String   @id
+  nama         String
+  email        String
+  nomorHp      String   @map("nomor_hp")
+  pesan        String
+  ip           String?
+  notification Json     @default("{}")
+  createdAt    DateTime @map("created_at") @db.Timestamptz(6)
+
+  @@map("contact_messages")
+}
+
+model AuditLog {
+  id         String   @id
+  actorId    String?  @map("actor_id")
+  action     String
+  entity     String
+  entityId   String?  @map("entity_id")
+  beforeData Json?    @map("before_data")
+  afterData  Json?    @map("after_data")
+  changes    Json?
+  ip         String?
+  createdAt  DateTime @map("created_at") @db.Timestamptz(6)
+
+  @@map("audit_logs")
+}
