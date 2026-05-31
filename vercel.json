@@ -1,6 +1,6 @@
 {
-  "installCommand": "if [ -d client ]; then cd client && npm ci --include=dev && cd ../server && npm ci --include=dev; else npm ci --include=dev && if [ -d ../server ]; then cd ../server && npm ci --include=dev; fi; fi",
-  "buildCommand": "if [ -d client ]; then cd client && npm run build && cd .. && rm -rf dist && cp -R client/dist dist && cd server && npm run prisma:generate; else npm run build && if [ -d ../server ]; then cd ../server && npm run prisma:generate; fi; fi",
+  "installCommand": "if [ -d client ]; then cd client && npm ci --include=dev && cd ../server && npm ci --include=dev; elif [ -d ../client ]; then current=$(basename \"$PWD\"); if [ -f package-lock.json ]; then npm ci --include=dev; fi; if [ \"$current\" = \"server\" ]; then cd ../client && npm ci --include=dev; elif [ \"$current\" = \"client\" ] && [ -d ../server ]; then cd ../server && npm ci --include=dev; fi; else npm ci --include=dev; fi",
+  "buildCommand": "if [ -d client ]; then cd client && npm run build && cd .. && rm -rf dist && cp -R client/dist dist && cd server && npm run prisma:generate; elif [ -d ../client ]; then current=$(basename \"$PWD\"); if [ \"$current\" = \"server\" ]; then cd ../client && npm run build && cd ../server && rm -rf dist && cp -R ../client/dist dist && npm run prisma:generate; elif [ \"$current\" = \"client\" ]; then npm run build && if [ -d ../server ]; then cd ../server && npm run prisma:generate; fi; else npm run build; fi; else npm run build; fi",
   "outputDirectory": "dist",
   "functions": {
     "api/index.js": {
