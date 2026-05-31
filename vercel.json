@@ -1,7 +1,7 @@
 {
-  "installCommand": "cd client && npm ci --include=dev && cd ../server && npm ci --include=dev",
-  "buildCommand": "cd client && npm run build && cd ../server && npm run prisma:generate",
-  "outputDirectory": "client/dist",
+  "installCommand": "if [ -d client ]; then cd client && npm ci --include=dev && cd ../server && npm ci --include=dev; else npm ci --include=dev && if [ -d ../server ]; then cd ../server && npm ci --include=dev; fi; fi",
+  "buildCommand": "if [ -d client ]; then cd client && npm run build && cd .. && rm -rf dist && cp -R client/dist dist && cd server && npm run prisma:generate; else npm run build && if [ -d ../server ]; then cd ../server && npm run prisma:generate; fi; fi",
+  "outputDirectory": "dist",
   "functions": {
     "api/index.js": {
       "includeFiles": "server/**"
