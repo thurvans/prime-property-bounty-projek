@@ -1,0 +1,9 @@
+{
+  "name": "prime-property-platform",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "vercel:install": "cd client && npm install --include=dev && cd ../server && npm install --include=dev",
+    "vercel:build": "cd client && npm run build && cd ../server && npm run prisma:generate"
+  }
+}

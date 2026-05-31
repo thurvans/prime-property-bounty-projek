@@ -1,6 +1,6 @@
 {
-  "installCommand": "cd client && npm install && cd ../server && npm install",
-  "buildCommand": "cd client && npm run build && cd ../server && npm run prisma:generate",
+  "installCommand": "npm run vercel:install",
+  "buildCommand": "npm run vercel:build",
   "outputDirectory": "client/dist",
   "functions": {
     "api/index.js": {
