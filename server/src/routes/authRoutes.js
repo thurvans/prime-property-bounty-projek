@@ -17,7 +17,7 @@ const loginSchema = z.object({
 
 const sessionCookieOptions = {
   httpOnly: true,
-  sameSite: 'lax',
+  sameSite: config.cookieSameSite,
   secure: config.isProduction,
   path: '/',
   maxAge: config.sessionMaxAgeMs
@@ -90,7 +90,7 @@ router.post('/auth/login', authLimiter, async (req, res) => {
 router.post('/auth/logout', requireAuth, async (_req, res) => {
   res.clearCookie(AUTH_COOKIE_NAME, {
     httpOnly: true,
-    sameSite: 'lax',
+    sameSite: config.cookieSameSite,
     secure: config.isProduction,
     path: '/'
   });

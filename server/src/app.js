@@ -47,6 +47,14 @@ export function createApp({ serveClient = false } = {}) {
     res.json({ status: 'ok', service: 'prime-property-api' });
   });
 
+  app.get('/', (_req, res) => {
+    res.json({
+      status: 'ok',
+      service: 'prime-property-api',
+      health: '/api/health'
+    });
+  });
+
   app.use('/api', async (_req, _res, next) => {
     try {
       await ensureStore();

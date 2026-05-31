@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_BASE || '/api';
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_BASE || '/api').replace(/\/$/, '');
 let csrfToken = null;
 
 export function setCsrfToken(token) {
@@ -28,7 +28,8 @@ export async function api(path, options = {}) {
     headers['X-CSRF-Token'] = csrfToken;
   }
 
-  const response = await fetch(`${API_BASE}${path}`, {
+  const apiPath = path.startsWith('/') ? path : `/${path}`;
+  const response = await fetch(`${API_BASE}${apiPath}`, {
     method,
     credentials: 'include',
     headers,

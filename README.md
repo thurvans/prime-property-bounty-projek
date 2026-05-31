@@ -79,3 +79,16 @@ Deploy sebagai 2 project terpisah:
 
 Frontend memakai [client/vercel.json](C:/Prime_Property/client/vercel.json) dan hanya build React Vite ke `dist`.
 Backend memakai [server/vercel.json](C:/Prime_Property/server/vercel.json) dan hanya expose route `/api/*`.
+
+Env frontend di Vercel:
+
+```bash
+VITE_API_BASE=https://your-backend-domain.vercel.app/api
+```
+
+Env backend di Vercel:
+
+```bash
+CLIENT_ORIGIN=https://your-frontend-domain.vercel.app
+COOKIE_SAMESITE=none
+```
